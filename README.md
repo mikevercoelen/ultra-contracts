@@ -53,7 +53,8 @@ There are 4 smart contracts:
 1. Frontend calls `ERC721AuctionHouse.createAuction` function with:
    - `uint256 tokenId` tokenId
    - `address tokenContract` UltrareumERC721 tokenContract
-   - `uint256 duration` duration
+   - `uint256 startDate` startDate
+   - `uint256 endDate` endDate
    - `uint256 reservePrice` reservePrice (minimum price)
    - `address auctionCurrency` address of the currency, depending if in contract constructor `nativeUsed` is set, it uses ETH or WETH
 
