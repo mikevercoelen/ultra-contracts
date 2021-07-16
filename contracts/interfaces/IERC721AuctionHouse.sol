@@ -12,8 +12,8 @@ interface IERC721AuctionHouse {
     address tokenContract;
     // The current highest bid amount
     uint256 amount;
-    // The length of time to run the auction for, after the first bid was made
-    uint256 duration;
+    uint256 startDate;
+    uint256 endDate;
     // The time of the first bid
     uint256 firstBidTime;
     // The minimum price of the first bid
@@ -32,7 +32,8 @@ interface IERC721AuctionHouse {
     uint256 indexed auctionId,
     uint256 indexed tokenId,
     address indexed tokenContract,
-    uint256 duration,
+    uint256 startDate,
+    uint256 endDate,
     uint256 reservePrice,
     address tokenOwner,
     address auctionCurrency
@@ -53,16 +54,7 @@ interface IERC721AuctionHouse {
     address indexed tokenContract,
     address sender,
     uint256 value,
-    bool firstBid,
-    bool extended
-  );
-
-  event AuctionDurationExtended(
-    uint256 timestamp,
-    uint256 indexed auctionId,
-    uint256 indexed tokenId,
-    address indexed tokenContract,
-    uint256 duration
+    bool firstBid
   );
 
   event AuctionEnded(
@@ -87,7 +79,8 @@ interface IERC721AuctionHouse {
   function createAuction(
     uint256 tokenId,
     address tokenContract,
-    uint256 duration,
+    uint256 startDate,
+    uint256 endDate,
     uint256 reservePrice,
     address auctionCurrency
   ) external returns (uint256);

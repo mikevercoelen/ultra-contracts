@@ -105,7 +105,8 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
   function createAuction(
     uint256 tokenId,
     address tokenContract,
-    uint256 duration,
+    uint256 startDate,
+    uint256 endDate,
     uint256 reservePrice,
     address auctionCurrency
   )
@@ -132,7 +133,8 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
       tokenId: tokenId,
       tokenContract: tokenContract,
       amount: 0,
-      duration: duration,
+      startDate: startDate,
+      endDate: endDate,
       firstBidTime: 0,
       reservePrice: reservePrice,
       tokenOwner: tokenOwner,
@@ -153,7 +155,8 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
       auctionId,
       tokenId,
       tokenContract,
-      duration,
+      startDate,
+      endDate,
       reservePrice,
       tokenOwner,
       auctionCurrency
@@ -201,16 +204,16 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
     nonReentrant
   {
     address payable lastBidder = auctions[auctionId].bidder;
-    require(
-      auctions[auctionId].firstBidTime == 0 ||
-        block.timestamp <
-        auctions[auctionId].firstBidTime.add(auctions[auctionId].duration),
-      "Auction expired"
-    );
+
+    require(block.timestamp >= auctions[auctionId].startDate, "Not started");
+
+    require(block.timestamp < auctions[auctionId].endDate, "Expired");
+
     require(
       amount >= auctions[auctionId].reservePrice,
       "Must send at least reservePrice"
     );
+
     require(
       amount >=
         auctions[auctionId].amount.add(
@@ -236,29 +239,6 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
     auctions[auctionId].amount = amount;
     auctions[auctionId].bidder = payable(msg.sender);
 
-    bool extended = false;
-    // at this point we know that the timestamp is less than start + duration (since the auction would be over, otherwise)
-    // we want to know by how much the timestamp is less than start + duration
-    // if the difference is less than the timeBuffer, increase the duration by the timeBuffer
-    if (
-      auctions[auctionId].firstBidTime.add(auctions[auctionId].duration).sub(
-        block.timestamp
-      ) < timeBuffer
-    ) {
-      // Playing code golf for gas optimization:
-      // uint256 expectedEnd = auctions[auctionId].firstBidTime.add(auctions[auctionId].duration);
-      // uint256 timeRemaining = expectedEnd.sub(block.timestamp);
-      // uint256 timeToAdd = timeBuffer.sub(timeRemaining);
-      // uint256 newDuration = auctions[auctionId].duration.add(timeToAdd);
-      uint256 oldDuration = auctions[auctionId].duration;
-      auctions[auctionId].duration = oldDuration.add(
-        timeBuffer.sub(
-          auctions[auctionId].firstBidTime.add(oldDuration).sub(block.timestamp)
-        )
-      );
-      extended = true;
-    }
-
     emit AuctionBid(
       block.timestamp,
       auctionId,
@@ -266,19 +246,8 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
       auctions[auctionId].tokenContract,
       msg.sender,
       amount,
-      lastBidder == address(0), // firstBid boolean
-      extended
+      lastBidder == address(0) // firstBid boolean
     );
-
-    if (extended) {
-      emit AuctionDurationExtended(
-        block.timestamp,
-        auctionId,
-        auctions[auctionId].tokenId,
-        auctions[auctionId].tokenContract,
-        auctions[auctionId].duration
-      );
-    }
   }
 
   /**
@@ -295,9 +264,9 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
       uint256(auctions[auctionId].firstBidTime) != 0,
       "Auction hasn't begun"
     );
+
     require(
-      block.timestamp >=
-        auctions[auctionId].firstBidTime.add(auctions[auctionId].duration),
+      block.timestamp >= auctions[auctionId].endDate,
       "Auction hasn't completed"
     );
 
@@ -305,6 +274,7 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
       auctions[auctionId].auctionCurrency == address(0)
         ? wethAddress
         : auctions[auctionId].auctionCurrency;
+
     uint256 serviceFee = 0;
     uint256 mintFee = 0;
     address serviceWallet = this.owner();
