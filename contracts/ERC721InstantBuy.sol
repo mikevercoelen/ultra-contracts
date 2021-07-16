@@ -58,7 +58,6 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
     serviceCut = _serviceCut;
     wethAddress = _weth;
     nativeUsed = _nativeUsed;
-    minBidIncrementPercentage = 5;
   }
 
   function setServiceCut(uint256 _cut) public onlyOwner {
