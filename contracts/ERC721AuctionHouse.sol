@@ -21,9 +21,6 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;
   using Counters for Counters.Counter;
 
-  // The minimum amount of time left in an auction after a new bid is created
-  uint256 public timeBuffer;
-
   // The minimum percentage difference between the last bid amount and the current bid.
   uint8 public minBidIncrementPercentage;
 
@@ -78,7 +75,6 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
     initialCut = _initialCut;
     wethAddress = _weth;
     nativeUsed = _nativeUsed;
-    timeBuffer = 15 * 60; // extend 15 minutes after every bid made in last 15 minutes
     minBidIncrementPercentage = 5; // 5%
   }
 
