@@ -23,6 +23,7 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
 
   // The service wallet info
   uint256 private serviceCut;
+  uint256 private initialCut;
   bool private nativeUsed;
 
   // / The address of the WETH contract, so that any ETH transferred can be handled as an ERC-20
@@ -36,9 +37,11 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
 
   Counters.Counter private _instantBuysIdTracker;
 
-  /**
-   * @notice Require that currency should be allowed
-   */
+  modifier instantBuyExists(uint256 instantBuyId) {
+    require(_exists(instantBuyId), "Instant buy doesn't exist");
+    _;
+  }
+
   modifier currencyAllowed(address currency) {
     require(
       (currency == address(0) && nativeUsed) || currency == wethAddress,
@@ -50,6 +53,7 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
   constructor(
     uint256 _serviceCut,
     address _weth,
+    uint256 _initialCut,
     bool _nativeUsed
   ) {
     require(_serviceCut > 0, "Zero service fee");
@@ -57,6 +61,7 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
 
     serviceCut = _serviceCut;
     wethAddress = _weth;
+    initialCut = _initialCut;
     nativeUsed = _nativeUsed;
   }
 
@@ -66,6 +71,14 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
 
   function getServiceCut() public view onlyOwner returns (uint256) {
     return serviceCut;
+  }
+
+  function setInitialCut(uint256 _cut) public onlyOwner {
+    initialCut = _cut;
+  }
+
+  function getInitialCut() public view onlyOwner returns (uint256) {
+    return initialCut;
   }
 
   function createInstantBuy(
@@ -124,8 +137,6 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
     return instantBuyId;
   }
 
-  // TODO: setInstantBuyPrice
-
   function instantBuy(uint256 instantBuyId, uint256 amount)
     external
     payable
@@ -133,8 +144,6 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
     instantBuyExists(instantBuyId)
     nonReentrant
   {
-    require(uint256(instantBuys[instantBuyId].price) != 0, "Not for sale");
-
     require(
       uint256(instantBuys[instantBuyId].price) == amount,
       "Invalid amount"
@@ -151,10 +160,10 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
     uint256 mintFee = 0;
 
     // Transfer the token
-    UltrareumERC721(instantBuyId[instantBuyId].tokenContract).safeTransferFrom(
+    UltrareumERC721(instantBuys[instantBuyId].tokenContract).safeTransferFrom(
       address(this),
-      instantBuys[instantBuyId].tokenOwner,
-      msg.sender
+      msg.sender,
+      instantBuys[instantBuyId].tokenId
     );
 
     if (serviceWallet != address(0)) {
@@ -165,13 +174,15 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
       serviceFee = tokenOwnerProfit.mul(serviceCut).div(BP_DIVISOR);
 
       (minterWallet, royaltyFee, royaltyData) = UltrareumERC721(
-        instantBuys[instantBuyId].tokenContract
+        instantBuys[instantBuyId]
+          .tokenContract
       )
-      .royaltyInfo(instantBuys[instantBuyId].tokenId, tokenOwnerProfit, "");
+        .royaltyInfo(instantBuys[instantBuyId].tokenId, tokenOwnerProfit, "");
 
-      uint256 mintFee = minterWallet == instantBuys[instantBuyId].tokenOwner
-        ? tokenOwnerProfit.mul(initialCut).div(BP_DIVISOR)
-        : royaltyFee;
+      uint256 mintFee =
+        minterWallet == instantBuys[instantBuyId].tokenOwner
+          ? tokenOwnerProfit.mul(initialCut).div(BP_DIVISOR)
+          : royaltyFee;
 
       tokenOwnerProfit = tokenOwnerProfit.sub(serviceFee).sub(mintFee);
 
@@ -183,7 +194,7 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
       );
 
       // Pay the minter
-      _handleOutgoingBid(
+      _handleOutgoingTransfer(
         minterWallet,
         mintFee,
         instantBuys[instantBuyId].instantBuyCurrency
@@ -216,7 +227,7 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
     uint256 amount,
     address currency
   ) internal {
-    // If the auction is in ETH, unwrap it from its underlying WETH and try to send it to the recipient.
+    // If the instant buy is in ETH, unwrap it from its underlying WETH and try to send it to the recipient.
     if (currency == address(0) && nativeUsed) {
       IWETH(wethAddress).withdraw(amount);
 
@@ -233,6 +244,10 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
   function _safeTransferETH(address to, uint256 value) internal returns (bool) {
     (bool success, ) = to.call{value: value}(new bytes(0));
     return success;
+  }
+
+  function _exists(uint256 instantBuyId) internal view returns (bool) {
+    return instantBuys[instantBuyId].tokenOwner != address(0);
   }
 
   // TODO: consider reverting if the message sender is not WETH
