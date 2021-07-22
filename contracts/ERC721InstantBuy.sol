@@ -186,19 +186,13 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
 
       tokenOwnerProfit = tokenOwnerProfit.sub(serviceFee).sub(mintFee);
 
+      address instantBuyCurrency = instantBuys[instantBuyId].instantBuyCurrency;
+
       // Pay the service
-      _handleOutgoingTransfer(
-        serviceWallet,
-        serviceFee,
-        instantBuys[instantBuyId].instantBuyCurrency
-      );
+      _handleOutgoingTransfer(serviceWallet, serviceFee, instantBuyCurrency);
 
       // Pay the minter
-      _handleOutgoingTransfer(
-        minterWallet,
-        mintFee,
-        instantBuys[instantBuyId].instantBuyCurrency
-      );
+      _handleOutgoingTransfer(minterWallet, mintFee, instantBuyCurrency);
     }
 
     // Pay the seller
