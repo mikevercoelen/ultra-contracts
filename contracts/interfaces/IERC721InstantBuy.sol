@@ -29,6 +29,17 @@ interface IERC721InstantBuy {
     address instantBuyCurrency
   );
 
+  event InstantBuyEnded(
+    uint256 timestamp,
+    uint256 indexed instantBuyId,
+    uint256 indexed tokenId,
+    address indexed tokenContract,
+    address tokenOwner,
+    address buyer,
+    uint256 amount,
+    address instantBuyCurrency
+  );
+
   function createInstantBuy(
     uint256 tokenId,
     address tokenContract,

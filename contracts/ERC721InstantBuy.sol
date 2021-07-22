@@ -145,9 +145,10 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
         ? wethAddress
         : instantBuys[instantBuyId].instantBuyCurrency;
 
-    uint256 serviceFee = 0;
     address serviceWallet = this.owner();
     uint256 tokenOwnerProfit = instantBuys[instantBuyId].price;
+    uint256 serviceFee = 0;
+    uint256 mintFee = 0;
 
     // Transfer the token
     UltrareumERC721(instantBuyId[instantBuyId].tokenContract).safeTransferFrom(
@@ -156,8 +157,82 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
       msg.sender
     );
 
-    // TODO: Payout the service
-    // TODO: Payout the seller
+    if (serviceWallet != address(0)) {
+      address minterWallet;
+      uint256 royaltyFee;
+      bytes memory royaltyData;
+
+      serviceFee = tokenOwnerProfit.mul(serviceCut).div(BP_DIVISOR);
+
+      (minterWallet, royaltyFee, royaltyData) = UltrareumERC721(
+        instantBuys[instantBuyId].tokenContract
+      )
+      .royaltyInfo(instantBuys[instantBuyId].tokenId, tokenOwnerProfit, "");
+
+      uint256 mintFee = minterWallet == instantBuys[instantBuyId].tokenOwner
+        ? tokenOwnerProfit.mul(initialCut).div(BP_DIVISOR)
+        : royaltyFee;
+
+      tokenOwnerProfit = tokenOwnerProfit.sub(serviceFee).sub(mintFee);
+
+      // Pay the service
+      _handleOutgoingTransfer(
+        serviceWallet,
+        serviceFee,
+        instantBuys[instantBuyId].instantBuyCurrency
+      );
+
+      // Pay the minter
+      _handleOutgoingBid(
+        minterWallet,
+        mintFee,
+        instantBuys[instantBuyId].instantBuyCurrency
+      );
+    }
+
+    // Pay the seller
+    _handleOutgoingTransfer(
+      instantBuys[instantBuyId].tokenOwner,
+      tokenOwnerProfit,
+      instantBuys[instantBuyId].instantBuyCurrency
+    );
+
+    emit InstantBuyEnded(
+      block.timestamp,
+      instantBuyId,
+      instantBuys[instantBuyId].tokenId,
+      instantBuys[instantBuyId].tokenContract,
+      instantBuys[instantBuyId].tokenOwner,
+      msg.sender,
+      tokenOwnerProfit,
+      currency
+    );
+
+    delete instantBuys[instantBuyId];
+  }
+
+  function _handleOutgoingTransfer(
+    address to,
+    uint256 amount,
+    address currency
+  ) internal {
+    // If the auction is in ETH, unwrap it from its underlying WETH and try to send it to the recipient.
+    if (currency == address(0) && nativeUsed) {
+      IWETH(wethAddress).withdraw(amount);
+
+      // If the ETH transfer fails (sigh), rewrap the ETH and try send it as WETH.
+      if (!_safeTransferETH(to, amount)) {
+        IWETH(wethAddress).deposit{value: amount}();
+        IERC20(wethAddress).safeTransfer(to, amount);
+      }
+    } else {
+      IERC20(currency).safeTransfer(to, amount);
+    }
+  }
+
+  function _safeTransferETH(address to, uint256 value) internal returns (bool) {
+    (bool success, ) = to.call{value: value}(new bytes(0));
+    return success;
   }
 
   // TODO: consider reverting if the message sender is not WETH
