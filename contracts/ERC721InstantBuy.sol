@@ -179,10 +179,9 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
       )
         .royaltyInfo(instantBuys[instantBuyId].tokenId, tokenOwnerProfit, "");
 
-      uint256 mintFee =
-        minterWallet == instantBuys[instantBuyId].tokenOwner
-          ? tokenOwnerProfit.mul(initialCut).div(BP_DIVISOR)
-          : royaltyFee;
+      mintFee = minterWallet == instantBuys[instantBuyId].tokenOwner
+        ? tokenOwnerProfit.mul(initialCut).div(BP_DIVISOR)
+        : royaltyFee;
 
       tokenOwnerProfit = tokenOwnerProfit.sub(serviceFee).sub(mintFee);
 
