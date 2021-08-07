@@ -19,18 +19,10 @@ yarn compile
 yarn test
 ```
 
-## Deploying
+## Deploying to Rinkeby
 
 ```
 yarn deploy-rinkeby
-```
-
-## Verifying
-
-First set the arguments in `./arguments.js`
-
-```shell
-yarn run hardhat verify [address] --constructor-args arguments.js --network rinkeby
 ```
 
 ## Summary
