@@ -65,6 +65,7 @@ describe('ERC721AuctionHouse', () => {
     const { startDate, endDate } = getStartEndDates()
 
     const reservePrice = BigNumber.from(10).pow(18).div(2)
+    const instantBuyPrice = BigNumber.from(10).pow(18).div(2)
 
     await auctionHouse.createAuction(
       tokenId,
@@ -72,6 +73,7 @@ describe('ERC721AuctionHouse', () => {
       startDate,
       endDate,
       reservePrice,
+      instantBuyPrice,
       currency
     )
   }
@@ -105,6 +107,7 @@ describe('ERC721AuctionHouse', () => {
           ultrareumERC721.address,
           startDate,
           endDate,
+          10,
           10,
           '0x0000000000000000000000000000000000000000'
         )
@@ -198,6 +201,7 @@ describe('ERC721AuctionHouse', () => {
     it('should revert if the token contract does not support the ERC721 interface', async () => {
       const { startDate, endDate } = getStartEndDates()
       const reservePrice = BigNumber.from(10).pow(18).div(2)
+      const instantBuyPrice = BigNumber.from(10).pow(18).div(2)
 
       await expect(
         auctionHouse.createAuction(
@@ -206,6 +210,7 @@ describe('ERC721AuctionHouse', () => {
           startDate,
           endDate,
           reservePrice,
+          instantBuyPrice,
           '0x0000000000000000000000000000000000000000'
         )
       ).eventually.rejectedWith(revert`tokenContract does not support ERC721 interface`)
@@ -215,6 +220,7 @@ describe('ERC721AuctionHouse', () => {
       const tokenId = 999
       const { startDate, endDate } = getStartEndDates()
       const reservePrice = BigNumber.from(10).pow(18).div(2)
+      const instantBuyPrice = BigNumber.from(10).pow(18).div(2)
       const [admin, _] = await ethers.getSigners()
 
       await expect(
@@ -226,6 +232,7 @@ describe('ERC721AuctionHouse', () => {
             startDate,
             endDate,
             reservePrice,
+            instantBuyPrice,
             '0x0000000000000000000000000000000000000000'
           )
       ).eventually.rejectedWith(revert`ERC721: owner query for nonexistent token`)

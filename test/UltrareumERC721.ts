@@ -24,7 +24,7 @@ describe('UltrareumERC721', function () {
   describe('#constructor', () => {
     it('should be able to deploy', async function () {
       expect(await tripcipERC721.name()).to.equal('UltrareumERC721')
-      expect(await tripcipERC721.symbol()).to.equal('TC721')
+      expect(await tripcipERC721.symbol()).to.equal('Ultra')
     })
   })
 
