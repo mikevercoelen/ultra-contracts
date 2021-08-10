@@ -22,7 +22,7 @@ contract UltrareumERC721 is ERC2981Royalties, ERC721URIStorage, ERC721Burnable {
     string metadataId
   );
 
-  constructor(string memory _baseTokenURI) ERC721("UltrareumERC721", "TC721") {
+  constructor(string memory _baseTokenURI) ERC721("UltrareumERC721", "Ultra") {
     baseTokenURI = _baseTokenURI;
   }
 
