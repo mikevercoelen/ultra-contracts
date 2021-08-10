@@ -86,6 +86,7 @@ interface IERC721AuctionHouse {
     uint256 startDate,
     uint256 endDate,
     uint256 reservePrice,
+    uint256 instantBuyPrice,
     address auctionCurrency
   ) external returns (uint256);
 
@@ -93,6 +94,8 @@ interface IERC721AuctionHouse {
     external;
 
   function createBid(uint256 auctionId, uint256 amount) external payable;
+
+  function instantBuy(uint256 auctionId, uint256 amount) external payable;
 
   function endAuction(uint256 auctionId) external;
 
