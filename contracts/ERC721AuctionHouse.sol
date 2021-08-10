@@ -391,6 +391,7 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
         auctions[auctionId].amount,
         auctions[auctionId].auctionCurrency
       );
+
       _cancelAuction(auctionId);
       return;
     }
@@ -401,26 +402,32 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
       bytes memory royaltyData;
 
       serviceFee = tokenOwnerProfit.mul(serviceCut).div(BP_DIVISOR);
+
       (minterWallet, royaltyFee, royaltyData) = UltrareumERC721(
         auctions[auctionId]
           .tokenContract
       )
         .royaltyInfo(auctions[auctionId].tokenId, tokenOwnerProfit, "");
+
       mintFee = minterWallet == auctions[auctionId].tokenOwner
         ? tokenOwnerProfit.mul(initialCut).div(BP_DIVISOR)
         : royaltyFee;
+
       tokenOwnerProfit = tokenOwnerProfit.sub(serviceFee).sub(mintFee);
+
       _handleOutgoingBid(
         serviceWallet,
         serviceFee,
         auctions[auctionId].auctionCurrency
       );
+
       _handleOutgoingBid(
         minterWallet,
         mintFee,
         auctions[auctionId].auctionCurrency
       );
     }
+
     _handleOutgoingBid(
       auctions[auctionId].tokenOwner,
       tokenOwnerProfit,
