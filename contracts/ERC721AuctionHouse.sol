@@ -257,6 +257,11 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
     nonReentrant
   {
     require(
+      uint256(auctions[auctionId].instantBuyPrice) > 0,
+      "No instant buy price set"
+    );
+
+    require(
       uint256(auctions[auctionId].instantBuyPrice) == amount,
       "Invalid amount"
     );
