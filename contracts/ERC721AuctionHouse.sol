@@ -104,6 +104,7 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
     uint256 startDate,
     uint256 endDate,
     uint256 reservePrice,
+    uint256 instantBuyPrice,
     address auctionCurrency
   )
     public
@@ -133,6 +134,7 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
       endDate: endDate,
       firstBidTime: 0,
       reservePrice: reservePrice,
+      instantBuyPrice: instantBuyPrice,
       tokenOwner: tokenOwner,
       bidder: payable(0),
       auctionCurrency: auctionCurrency
@@ -154,6 +156,7 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
       startDate,
       endDate,
       reservePrice,
+      instantBuyPrice,
       tokenOwner,
       auctionCurrency
     );
@@ -246,6 +249,104 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
     );
   }
 
+  function instantBuy(uint256 auctionId, uint256 amount)
+    external
+    payable
+    override
+    auctionExists(auctionId)
+    nonReentrant
+  {
+    require(
+      uint256(auctions[auctionId].instantBuyPrice) == amount,
+      "Invalid amount"
+    );
+
+    // TODO: double check with business requirements, this won't allow for instantBuy after a first bid has come in
+    require(auctions[auctionId].firstBidTime == 0, "Already has bids");
+
+    address currency =
+      auctions[auctionId].auctionCurrency == address(0)
+        ? wethAddress
+        : auctions[auctionId].auctionCurrency;
+
+    uint256 serviceFee = 0;
+    uint256 mintFee = 0;
+    address serviceWallet = this.owner();
+
+    uint256 tokenOwnerProfit = auctions[auctionId].instantBuyPrice;
+
+    try
+      UltrareumERC721(auctions[auctionId].tokenContract).safeTransferFrom(
+        address(this),
+        msg.sender,
+        auctions[auctionId].tokenId
+      )
+    {} catch {
+      // TODO: SUPER IMPORTANT, this needs to be double double checked, is this correct?
+      _handleOutgoingBid(
+        msg.sender,
+        amount,
+        auctions[auctionId].auctionCurrency
+      );
+
+      // TODO: SUPER IMPORTANT, this needs to be double double checked, why do we need it?
+      _cancelAuction(auctionId);
+      return;
+    }
+
+    if (serviceWallet != address(0)) {
+      address minterWallet;
+      uint256 royaltyFee;
+      bytes memory royaltyData;
+
+      serviceFee = tokenOwnerProfit.mul(serviceCut).div(BP_DIVISOR);
+
+      (minterWallet, royaltyFee, royaltyData) = UltrareumERC721(
+        auctions[auctionId]
+          .tokenContract
+      )
+        .royaltyInfo(auctions[auctionId].tokenId, tokenOwnerProfit, "");
+
+      mintFee = minterWallet == auctions[auctionId].tokenOwner
+        ? tokenOwnerProfit.mul(initialCut).div(BP_DIVISOR)
+        : royaltyFee;
+
+      tokenOwnerProfit = tokenOwnerProfit.sub(serviceFee).sub(mintFee);
+
+      _handleOutgoingBid(
+        serviceWallet,
+        serviceFee,
+        auctions[auctionId].auctionCurrency
+      );
+
+      _handleOutgoingBid(
+        minterWallet,
+        mintFee,
+        auctions[auctionId].auctionCurrency
+      );
+    }
+
+    _handleOutgoingBid(
+      auctions[auctionId].tokenOwner,
+      tokenOwnerProfit,
+      auctions[auctionId].auctionCurrency
+    );
+
+    emit AuctionEnded(
+      block.timestamp,
+      auctionId,
+      auctions[auctionId].tokenId,
+      auctions[auctionId].tokenContract,
+      auctions[auctionId].tokenOwner,
+      auctions[auctionId].bidder,
+      tokenOwnerProfit,
+      currency,
+      true
+    );
+
+    delete auctions[auctionId];
+  }
+
   /**
    * @dev If for some reason the auction cannot be finalized (invalid token recipient, for example),
    * The auction is reset and the NFT is transferred back to the auction creator.
@@ -334,7 +435,8 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
       auctions[auctionId].tokenOwner,
       auctions[auctionId].bidder,
       tokenOwnerProfit,
-      currency
+      currency,
+      false
     );
 
     delete auctions[auctionId];

@@ -18,6 +18,8 @@ interface IERC721AuctionHouse {
     uint256 firstBidTime;
     // The minimum price of the first bid
     uint256 reservePrice;
+    // The price for an instant buy
+    uint256 instantBuyPrice;
     // The address that should receive the funds once the NFT is sold.
     address tokenOwner;
     // The address of the current highest bid
@@ -35,6 +37,7 @@ interface IERC721AuctionHouse {
     uint256 startDate,
     uint256 endDate,
     uint256 reservePrice,
+    uint256 instantBuyPrice,
     address tokenOwner,
     address auctionCurrency
   );
@@ -65,7 +68,8 @@ interface IERC721AuctionHouse {
     address tokenOwner,
     address winner,
     uint256 amount,
-    address auctionCurrency
+    address auctionCurrency,
+    bool instantBought
   );
 
   event AuctionCanceled(
