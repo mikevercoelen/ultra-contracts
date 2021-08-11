@@ -269,6 +269,9 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
     // TODO: double check with business requirements, this won't allow for instantBuy after a first bid has come in
     require(auctions[auctionId].firstBidTime == 0, "Already has bids");
 
+    // Call handleIncomingBid (this handles creating WETH properly)
+    _handleIncomingBid(amount, auctions[auctionId].auctionCurrency);
+
     address currency = auctions[auctionId].auctionCurrency == address(0)
       ? wethAddress
       : auctions[auctionId].auctionCurrency;
