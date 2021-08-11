@@ -269,10 +269,9 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
     // TODO: double check with business requirements, this won't allow for instantBuy after a first bid has come in
     require(auctions[auctionId].firstBidTime == 0, "Already has bids");
 
-    address currency =
-      auctions[auctionId].auctionCurrency == address(0)
-        ? wethAddress
-        : auctions[auctionId].auctionCurrency;
+    address currency = auctions[auctionId].auctionCurrency == address(0)
+      ? wethAddress
+      : auctions[auctionId].auctionCurrency;
 
     uint256 serviceFee = 0;
     uint256 mintFee = 0;
@@ -307,10 +306,8 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
       serviceFee = tokenOwnerProfit.mul(serviceCut).div(BP_DIVISOR);
 
       (minterWallet, royaltyFee, royaltyData) = UltrareumERC721(
-        auctions[auctionId]
-          .tokenContract
-      )
-        .royaltyInfo(auctions[auctionId].tokenId, tokenOwnerProfit, "");
+        auctions[auctionId].tokenContract
+      ).royaltyInfo(auctions[auctionId].tokenId, tokenOwnerProfit, "");
 
       mintFee = minterWallet == auctions[auctionId].tokenOwner
         ? tokenOwnerProfit.mul(initialCut).div(BP_DIVISOR)
@@ -372,10 +369,9 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
       "Auction hasn't completed"
     );
 
-    address currency =
-      auctions[auctionId].auctionCurrency == address(0)
-        ? wethAddress
-        : auctions[auctionId].auctionCurrency;
+    address currency = auctions[auctionId].auctionCurrency == address(0)
+      ? wethAddress
+      : auctions[auctionId].auctionCurrency;
 
     uint256 serviceFee = 0;
     uint256 mintFee = 0;
@@ -409,10 +405,8 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
       serviceFee = tokenOwnerProfit.mul(serviceCut).div(BP_DIVISOR);
 
       (minterWallet, royaltyFee, royaltyData) = UltrareumERC721(
-        auctions[auctionId]
-          .tokenContract
-      )
-        .royaltyInfo(auctions[auctionId].tokenId, tokenOwnerProfit, "");
+        auctions[auctionId].tokenContract
+      ).royaltyInfo(auctions[auctionId].tokenId, tokenOwnerProfit, "");
 
       mintFee = minterWallet == auctions[auctionId].tokenOwner
         ? tokenOwnerProfit.mul(initialCut).div(BP_DIVISOR)

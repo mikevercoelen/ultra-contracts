@@ -149,10 +149,10 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
       "Invalid amount"
     );
 
-    address currency =
-      instantBuys[instantBuyId].instantBuyCurrency == address(0)
-        ? wethAddress
-        : instantBuys[instantBuyId].instantBuyCurrency;
+    address currency = instantBuys[instantBuyId].instantBuyCurrency ==
+      address(0)
+      ? wethAddress
+      : instantBuys[instantBuyId].instantBuyCurrency;
 
     address serviceWallet = this.owner();
     uint256 tokenOwnerProfit = instantBuys[instantBuyId].price;
@@ -174,10 +174,8 @@ contract ERC721InstantBuy is IERC721InstantBuy, Ownable, ReentrancyGuard {
       serviceFee = tokenOwnerProfit.mul(serviceCut).div(BP_DIVISOR);
 
       (minterWallet, royaltyFee, royaltyData) = UltrareumERC721(
-        instantBuys[instantBuyId]
-          .tokenContract
-      )
-        .royaltyInfo(instantBuys[instantBuyId].tokenId, tokenOwnerProfit, "");
+        instantBuys[instantBuyId].tokenContract
+      ).royaltyInfo(instantBuys[instantBuyId].tokenId, tokenOwnerProfit, "");
 
       mintFee = minterWallet == instantBuys[instantBuyId].tokenOwner
         ? tokenOwnerProfit.mul(initialCut).div(BP_DIVISOR)

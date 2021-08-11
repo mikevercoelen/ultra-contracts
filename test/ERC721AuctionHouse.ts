@@ -3,8 +3,7 @@ import chai, { expect } from 'chai'
 import asPromised from 'chai-as-promised'
 import { ethers } from 'hardhat'
 import { ERC721AuctionHouse, BadBidder, TestERC721, BadERC721, UltrareumERC721 } from '../typechain'
-import { formatUnits } from 'ethers/lib/utils'
-import {BigNumber, BigNumberish, Contract, Overrides, Signer} from 'ethers'
+import { BigNumber, Contract, Signer } from 'ethers'
 import {
   deployBidder,
   deployMainNFT,
@@ -125,7 +124,7 @@ describe('ERC721AuctionHouse', () => {
 
     describe('getServiceCut', () => {
       it('should revert if the caller is not owner', async () => {
-        const [_, other] = await ethers.getSigners()
+        const [, other] = await ethers.getSigners()
         await expect(auctionHouse.connect(other).getServiceCut()).eventually.rejectedWith(
           revert`Ownable: caller is not the owner`
         )
@@ -139,7 +138,7 @@ describe('ERC721AuctionHouse', () => {
 
     describe('setServiceCut', () => {
       it('should revert if the caller is not owner', async () => {
-        const [_, other] = await ethers.getSigners()
+        const [, other] = await ethers.getSigners()
         await expect(auctionHouse.connect(other).setServiceCut(10)).eventually.rejectedWith(
           revert`Ownable: caller is not the owner`
         )
@@ -163,7 +162,7 @@ describe('ERC721AuctionHouse', () => {
 
     describe('getInitialCut', () => {
       it('should revert if the caller is not owner', async () => {
-        const [_, other] = await ethers.getSigners()
+        const [, other] = await ethers.getSigners()
         await expect(auctionHouse.connect(other).getInitialCut()).eventually.rejectedWith(
           revert`Ownable: caller is not the owner`
         )
@@ -177,7 +176,7 @@ describe('ERC721AuctionHouse', () => {
 
     describe('setInitialCut', () => {
       it('should revert if the caller is not owner', async () => {
-        const [_, other] = await ethers.getSigners()
+        const [, other] = await ethers.getSigners()
         await expect(auctionHouse.connect(other).setInitialCut(10)).eventually.rejectedWith(
           revert`Ownable: caller is not the owner`
         )
