@@ -343,7 +343,7 @@ contract ERC721AuctionHouse is IERC721AuctionHouse, Ownable, ReentrancyGuard {
       auctions[auctionId].tokenId,
       auctions[auctionId].tokenContract,
       auctions[auctionId].tokenOwner,
-      auctions[auctionId].bidder,
+      msg.sender,
       tokenOwnerProfit,
       currency,
       true
