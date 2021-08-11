@@ -58,14 +58,13 @@ describe('ERC721AuctionHouse', () => {
 
   async function createAuction(
     auctionHouse: ERC721AuctionHouse,
-    currency = '0x0000000000000000000000000000000000000000'
+    currency = '0x0000000000000000000000000000000000000000',
+    instantBuyPrice = BigNumber.from(10).pow(18).div(2)
   ) {
     const tokenId = 0
     const { startDate, endDate } = getStartEndDates()
 
     const reservePrice = BigNumber.from(10).pow(18).div(2)
-    const instantBuyPrice = BigNumber.from(10).pow(18).div(2)
-
     await auctionHouse.createAuction(
       tokenId,
       ultrareumERC721.address,
@@ -559,6 +558,49 @@ describe('ERC721AuctionHouse', () => {
       //     ).eventually.rejectedWith(revert`Auction expired`)
       //   })
       // })
+    })
+  })
+
+  describe('#instantBuy', () => {
+    it('should revert if instantBuyPrice was not set', async () => {
+      const [creator] = await ethers.getSigners()
+      const auctionHouse = (await (await deploy()).connect(creator)) as ERC721AuctionHouse
+      await ultrareumERC721.approve(auctionHouse.address, 0)
+
+      await createAuction(
+        auctionHouse.connect(creator),
+        '0x0000000000000000000000000000000000000000',
+        BigNumber.from(0)
+      )
+
+      await expect(auctionHouse.instantBuy(0, ONE_ETH, { value: ONE_ETH })).eventually.rejectedWith(
+        revert`No instant buy price set`
+      )
+    })
+
+    it('should revert if the auction does not exist', async () => {
+      const [creator] = await ethers.getSigners()
+      const auctionHouse = (await (await deploy()).connect(creator)) as ERC721AuctionHouse
+      await ultrareumERC721.approve(auctionHouse.address, 0)
+
+      await expect(auctionHouse.instantBuy(0, ONE_ETH, { value: ONE_ETH })).eventually.rejectedWith(
+        revert`Auction doesn't exist`
+      )
+    })
+
+    it('should revert if the instantBuyPrice was invalid', async () => {
+      const [creator] = await ethers.getSigners()
+      const auctionHouse = (await (await deploy()).connect(creator)) as ERC721AuctionHouse
+      await ultrareumERC721.approve(auctionHouse.address, 0)
+
+      await createAuction(
+        auctionHouse.connect(creator),
+        '0x0000000000000000000000000000000000000000'
+      )
+
+      await expect(auctionHouse.instantBuy(0, ONE_ETH, { value: ONE_ETH })).eventually.rejectedWith(
+        revert`Invalid amount`
+      )
     })
   })
 
