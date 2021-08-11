@@ -30,4 +30,4 @@ export const deployBidder = async (auction: string): Promise<BadBidder> => {
 }
 
 export const revert = (messages: TemplateStringsArray): string =>
-  `VM Exception while processing transaction: revert ${messages[0]}`
+  `VM Exception while processing transaction: reverted with reason string '${messages[0]}'`
