@@ -792,7 +792,6 @@ describe('ERC721AuctionHouse', () => {
       //   await auctionHouse.endAuction(0)
       //   const creatorBalance = await ethers.provider.getBalance(await creator.getAddress())
       //   const wethBalance = await weth.balanceOf(await creator.getAddress())
-      //   //
       //
       //   await expect(creatorBalance.sub(beforeBalance).add(wethBalance).toString()).to.eq(
       //     '999224056000000000'
