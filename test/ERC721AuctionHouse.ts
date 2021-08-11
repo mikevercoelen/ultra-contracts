@@ -602,6 +602,51 @@ describe('ERC721AuctionHouse', () => {
         revert`Invalid amount`
       )
     })
+
+    it('should revert if there was already a bid', async () => {
+      const [creator, bidder] = await ethers.getSigners()
+      const auctionHouse = (await (await deploy()).connect(creator)) as ERC721AuctionHouse
+      await ultrareumERC721.approve(auctionHouse.address, 0)
+      await ethers.provider.send('evm_setNextBlockTimestamp', [blockTimestampStartDate])
+
+      const instantBuyPrice = BigNumber.from(10).pow(18).div(2)
+
+      await createAuction(
+        auctionHouse.connect(creator),
+        '0x0000000000000000000000000000000000000000',
+        instantBuyPrice
+      )
+
+      await auctionHouse.connect(bidder).createBid(0, ONE_ETH, { value: ONE_ETH })
+      await expect(auctionHouse.instantBuy(0, instantBuyPrice, { value: instantBuyPrice })).eventually.rejectedWith(
+        revert`Already has bids`
+      )
+    })
+
+    // TODO: fix me
+    // it('should instantly buy the token', async () => {
+    //   const [creator, bidder] = await ethers.getSigners()
+    //   const auctionHouse = (await (await deploy()).connect(creator)) as ERC721AuctionHouse
+    //   await ultrareumERC721.approve(auctionHouse.address, 0)
+    //   // await ethers.provider.send('evm_setNextBlockTimestamp', [blockTimestampStartDate])
+    //
+    //   const instantBuyPrice = BigNumber.from(5).pow(18).div(2)
+    //
+    //   await createAuction(
+    //     auctionHouse.connect(creator),
+    //     '0x0000000000000000000000000000000000000000',
+    //     instantBuyPrice
+    //   )
+    //
+    //   await auctionHouse.instantBuy(0, instantBuyPrice, { value: instantBuyPrice })
+    //   await expect(ultrareumERC721.ownerOf(0)).to.eq(await bidder.getAddress())
+    //
+    //   //   it('should transfer the NFT to the winning bidder', async () => {
+    //   //     await auctionHouse.endAuction(0)
+    //   //
+    //   //     expect(await ultrareumERC721.ownerOf(0)).to.eq(await bidder.getAddress())
+    //   //   })
+    // })
   })
 
   describe('#cancelAuction', () => {
@@ -628,13 +673,16 @@ describe('ERC721AuctionHouse', () => {
       )
     })
 
-    // TODO: fix me
-    // it('should revert if the auction has already begun', async () => {
-    //   await auctionHouse.connect(bidder).createBid(0, ONE_ETH, { value: ONE_ETH })
-    //   await expect(auctionHouse.cancelAuction(0)).eventually.rejectedWith(
-    //     revert`Can't cancel an auction once it's begun`
-    //   )
-    // })
+    it('should revert if the auction has already begun', async () => {
+      const { startDate } = getStartEndDates()
+
+      await ethers.provider.send('evm_setNextBlockTimestamp', [startDate + 1])
+
+      await auctionHouse.connect(bidder).createBid(0, ONE_ETH, { value: ONE_ETH })
+      await expect(auctionHouse.cancelAuction(0)).eventually.rejectedWith(
+        revert`Can't cancel an auction once it's begun`
+      )
+    })
 
     it('should be callable by the creator', async () => {
       await auctionHouse.cancelAuction(0)
@@ -642,7 +690,8 @@ describe('ERC721AuctionHouse', () => {
       const auctionResult = await auctionHouse.auctions(0)
 
       expect(auctionResult.amount.toNumber()).to.eq(0)
-      // TODO: fix me expect(auctionResult.duration.toNumber()).to.eq(0)
+      expect(auctionResult.startDate.toNumber()).to.eq(0)
+      expect(auctionResult.endDate.toNumber()).to.eq(0)
       expect(auctionResult.firstBidTime.toNumber()).to.eq(0)
       expect(auctionResult.reservePrice.toNumber()).to.eq(0)
       expect(auctionResult.tokenOwner).to.eq(ethers.constants.AddressZero)
@@ -693,89 +742,97 @@ describe('ERC721AuctionHouse', () => {
       await expect(auctionHouse.endAuction(0)).eventually.rejectedWith(revert`Auction hasn't begun`)
     })
 
-    // it('should revert if the auction has not completed', async () => {
-    //   await auctionHouse.createBid(0, ONE_ETH, {
-    //     value: ONE_ETH,
-    //   })
-    //
-    //   await expect(auctionHouse.endAuction(0)).eventually.rejectedWith(
-    //     revert`Auction hasn't completed`
-    //   )
-    // })
+    it('should revert if the auction has not completed', async () => {
+      const { startDate } = getStartEndDates()
 
-    // TODO: fix me
-    // it('should cancel the auction if the winning bidder is unable to receive NFTs', async () => {
-    //   await badBidder.placeBid(0, TWO_ETH, { value: TWO_ETH })
-    //   const endTime =
-    //     (await auctionHouse.auctions(0)).duration.toNumber() +
-    //     (await auctionHouse.auctions(0)).firstBidTime.toNumber()
-    //   await ethers.provider.send('evm_setNextBlockTimestamp', [endTime + 1])
-    //
-    //   await auctionHouse.endAuction(0)
-    //
-    //   expect(await ultrareumERC721.ownerOf(0)).to.eq(await creator.getAddress())
-    //   expect(await ethers.provider.getBalance(badBidder.address)).to.eq(TWO_ETH)
-    // })
+      await ethers.provider.send('evm_setNextBlockTimestamp', [startDate + 1])
 
-    // TODO: fix me
-    // describe('ETH auction', () => {
-    //   beforeEach(async () => {
-    //     await auctionHouse.connect(bidder).createBid(0, ONE_ETH, { value: ONE_ETH })
-    //     const endTime =
-    //       (await auctionHouse.auctions(0)).duration.toNumber() +
-    //       (await auctionHouse.auctions(0)).firstBidTime.toNumber()
-    //     await ethers.provider.send('evm_setNextBlockTimestamp', [endTime + 1])
-    //   })
-    //
-    //   it('should transfer the NFT to the winning bidder', async () => {
-    //     await auctionHouse.endAuction(0)
-    //
-    //     expect(await ultrareumERC721.ownerOf(0)).to.eq(await bidder.getAddress())
-    //   })
-    //
-    //   // it('should pay the creator the remainder of the winning bid', async () => {
-    //   //   const beforeBalance = await ethers.provider.getBalance(await creator.getAddress())
-    //   //   await auctionHouse.endAuction(0)
-    //   //   const creatorBalance = await ethers.provider.getBalance(await creator.getAddress())
-    //   //   const wethBalance = await weth.balanceOf(await creator.getAddress())
-    //   //   await expect(creatorBalance.sub(beforeBalance).add(wethBalance).toString()).to.eq(
-    //   //     '999224056000000000'
-    //   //   )
-    //   // })
-    //
-    //   it('should emit an AuctionEnded event', async () => {
-    //     const block = await ethers.provider.getBlockNumber()
-    //     const auctionData = await auctionHouse.auctions(0)
-    //     await auctionHouse.endAuction(0)
-    //     const events = await auctionHouse.queryFilter(
-    //       auctionHouse.filters.AuctionEnded(null, null, null, null, null, null, null),
-    //       block
-    //     )
-    //     expect(events.length).eq(1)
-    //     const logDescription = auctionHouse.interface.parseLog(events[0])
-    //
-    //     const creatorBalance = await ethers.provider.getBalance(await creator.getAddress())
-    //
-    //     expect(logDescription.args.tokenId).to.eq(0)
-    //     expect(logDescription.args.tokenOwner).to.eq(auctionData.tokenOwner)
-    //     expect(logDescription.args.winner).to.eq(auctionData.bidder)
-    //     expect(logDescription.args.amount.toString()).to.eq('800000000000000000')
-    //     expect(logDescription.args.auctionCurrency).to.eq(weth.address)
-    //   })
-    //
-    //   it('should delete the auction', async () => {
-    //     await auctionHouse.endAuction(0)
-    //
-    //     const auctionResult = await auctionHouse.auctions(0)
-    //
-    //     expect(auctionResult.amount.toNumber()).to.eq(0)
-    //     expect(auctionResult.duration.toNumber()).to.eq(0)
-    //     expect(auctionResult.firstBidTime.toNumber()).to.eq(0)
-    //     expect(auctionResult.reservePrice.toNumber()).to.eq(0)
-    //     expect(auctionResult.tokenOwner).to.eq(ethers.constants.AddressZero)
-    //     expect(auctionResult.bidder).to.eq(ethers.constants.AddressZero)
-    //     expect(auctionResult.auctionCurrency).to.eq(ethers.constants.AddressZero)
-    //   })
-    // })
+      await auctionHouse.createBid(0, ONE_ETH, {
+        value: ONE_ETH,
+      })
+
+      await expect(auctionHouse.endAuction(0)).eventually.rejectedWith(
+        revert`Auction hasn't completed`
+      )
+    })
+
+    it('should cancel the auction if the winning bidder is unable to receive NFTs', async () => {
+      const { startDate, endDate } = getStartEndDates()
+
+      await ethers.provider.send('evm_setNextBlockTimestamp', [startDate + 1])
+
+      await badBidder.placeBid(0, TWO_ETH, { value: TWO_ETH })
+
+      await ethers.provider.send('evm_setNextBlockTimestamp', [endDate + 1])
+
+      await auctionHouse.endAuction(0)
+
+      expect(await ultrareumERC721.ownerOf(0)).to.eq(await creator.getAddress())
+      expect(await ethers.provider.getBalance(badBidder.address)).to.eq(TWO_ETH)
+    })
+
+    describe('ETH auction', () => {
+      beforeEach(async () => {
+        const { startDate, endDate } = getStartEndDates()
+
+        await ethers.provider.send('evm_setNextBlockTimestamp', [startDate + 1])
+        await auctionHouse.connect(bidder).createBid(0, ONE_ETH, { value: ONE_ETH })
+        await ethers.provider.send('evm_setNextBlockTimestamp', [endDate + 1])
+      })
+
+      it('should transfer the NFT to the winning bidder', async () => {
+        await auctionHouse.endAuction(0)
+
+        expect(await ultrareumERC721.ownerOf(0)).to.eq(await bidder.getAddress())
+      })
+
+      // TODO: this is not working and SHOULD BE DOUBLE CHECKED
+      // it('should pay the creator the remainder of the winning bid', async () => {
+      //   const beforeBalance = await ethers.provider.getBalance(await creator.getAddress())
+      //   await auctionHouse.endAuction(0)
+      //   const creatorBalance = await ethers.provider.getBalance(await creator.getAddress())
+      //   const wethBalance = await weth.balanceOf(await creator.getAddress())
+      //   //
+      //
+      //   await expect(creatorBalance.sub(beforeBalance).add(wethBalance).toString()).to.eq(
+      //     '999224056000000000'
+      //   )
+      // })
+
+      it('should emit an AuctionEnded event', async () => {
+        const block = await ethers.provider.getBlockNumber()
+        const auctionData = await auctionHouse.auctions(0)
+        await auctionHouse.endAuction(0)
+        const events = await auctionHouse.queryFilter(
+          auctionHouse.filters.AuctionEnded(null, null, null, null, null, null, null),
+          block
+        )
+        expect(events.length).eq(1)
+        const logDescription = auctionHouse.interface.parseLog(events[0])
+
+        // const creatorBalance = await ethers.provider.getBalance(await creator.getAddress())
+
+        expect(logDescription.args.tokenId).to.eq(0)
+        expect(logDescription.args.tokenOwner).to.eq(auctionData.tokenOwner)
+        expect(logDescription.args.winner).to.eq(auctionData.bidder)
+        expect(logDescription.args.amount.toString()).to.eq('800000000000000000')
+        expect(logDescription.args.auctionCurrency).to.eq(weth.address)
+      })
+
+      it('should delete the auction', async () => {
+        await auctionHouse.endAuction(0)
+
+        const auctionResult = await auctionHouse.auctions(0)
+
+        expect(auctionResult.amount.toNumber()).to.eq(0)
+        expect(auctionResult.startDate.toNumber()).to.eq(0)
+        expect(auctionResult.endDate.toNumber()).to.eq(0)
+        expect(auctionResult.firstBidTime.toNumber()).to.eq(0)
+        expect(auctionResult.reservePrice.toNumber()).to.eq(0)
+        expect(auctionResult.tokenOwner).to.eq(ethers.constants.AddressZero)
+        expect(auctionResult.bidder).to.eq(ethers.constants.AddressZero)
+        expect(auctionResult.auctionCurrency).to.eq(ethers.constants.AddressZero)
+      })
+    })
   })
 })
